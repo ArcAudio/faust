@@ -29,6 +29,7 @@
 #include "global.hh"
 #include "instructions.hh"
 #include "instructions_compiler.hh"
+#include "instructions_compiler1.hh"
 #include "ppsig.hh"
 #include "prim2.hh"
 #include "privatise.hh"
@@ -405,9 +406,15 @@ CodeContainer* InstructionsCompiler::signal2Container(const string& name, Tree s
 {
     ::Type t = getCertifiedSigType(sig);
 
-    CodeContainer*       container = fContainer->createScalarContainer(name, t->nature());
-    InstructionsCompiler C(container);
-    C.compileSingleSignal(sig);
+    CodeContainer* container = fContainer->createScalarContainer(name, t->nature());
+    
+    if (gGlobal->gOutputLang == "rust" || gGlobal->gOutputLang == "julia") {
+        InstructionsCompiler1 C(container);
+        C.compileSingleSignal(sig);
+    } else {
+        InstructionsCompiler C(container);
+        C.compileSingleSignal(sig);
+    }
     return container;
 }
 
@@ -1496,8 +1503,8 @@ ValueInst* InstructionsCompiler::generateTable(Tree sig, Tree tsize, Tree conten
             kvnames.second, InstBuilder::genNamedTyped(kvnames.first, InstBuilder::genBasicTyped(Typed::kObj_ptr)),
             obj));
 
-        // HACK for Rust backend
-        if (gGlobal->gOutputLang != "rust") {
+        // HACK for Rust and Julia backends
+        if (gGlobal->gOutputLang != "rust" && gGlobal->gOutputLang != "julia") {
             // Delete object
             list<ValueInst*> args3;
             if (gGlobal->gMemoryManager) {
@@ -1570,8 +1577,8 @@ ValueInst* InstructionsCompiler::generateStaticTable(Tree sig, Tree tsize, Tree 
                 kvnames.second, InstBuilder::genNamedTyped(kvnames.first, InstBuilder::genBasicTyped(Typed::kObj_ptr)),
                 obj));
 
-            // HACK for Rust backend
-            if (gGlobal->gOutputLang != "rust") {
+            // HACK for Rust and Julia backends
+            if (gGlobal->gOutputLang != "rust" && gGlobal->gOutputLang != "julia") {
                 // Delete object
                 list<ValueInst*> args3;
                 if (gGlobal->gMemoryManager) {
@@ -1749,8 +1756,8 @@ ValueInst* InstructionsCompiler::generateSigGen(Tree sig, Tree content)
     pushInitMethod(InstBuilder::genDecStackVar(
         signame, InstBuilder::genNamedTyped(cname, InstBuilder::genBasicTyped(Typed::kObj_ptr)), obj));
 
-    // HACK for Rust backend
-    if (gGlobal->gOutputLang != "rust") {
+    // HACK for Rust an Julia backends
+    if (gGlobal->gOutputLang != "rust" && gGlobal->gOutputLang != "julia") {
         // Delete object
         list<ValueInst*> args3;
         args3.push_back(InstBuilder::genLoadStackVar(signame));
@@ -1783,8 +1790,8 @@ ValueInst* InstructionsCompiler::generateStaticSigGen(Tree sig, Tree content)
     pushStaticInitMethod(InstBuilder::genDecStackVar(
         signame, InstBuilder::genNamedTyped(cname, InstBuilder::genBasicTyped(Typed::kObj_ptr)), obj));
 
-    // HACK for Rust backend
-    if (gGlobal->gOutputLang != "rust") {
+    // HACK for Rust and Julia backends
+    if (gGlobal->gOutputLang != "rust" && gGlobal->gOutputLang != "julia") {
         // Delete object
         list<ValueInst*> args3;
         args3.push_back(InstBuilder::genLoadStackVar(signame));
